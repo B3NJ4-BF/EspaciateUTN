@@ -1,0 +1,48 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: start-dev
+    environment:
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT:-8180}:8080"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT:-8080}:8080"
+    environment:
+      USUARIOS_URL: http://usuario-service:8082
+      ESPACIOS_URL: http://microservicio-espacios:8083
+      RESERVAS_URL: http://microservicio-reservas:8081
+      KEYCLOAK_ISSUER_URI: http://localhost:${KEYCLOAK_PORT:-8180}/realms/tpi-reservas
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI: http://keycloak:8080/realms/tpi-reservas/protocol/openid-connect/certs
+
+  usuario-service:
+    build: ./usuario-service
+    volumes:
+      - usuarios-data:/app/data
+
+  microservicio-espacios:
+    build: ./microservicio-espacios
+    volumes:
+      - espacios-data:/app/data
+
+  microservicio-reservas:
+    build: ./microservicio-reservas
+    environment:
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=America/Argentina/Buenos_Aires"
+      USUARIOS_SERVICE_URL: http://usuario-service:8082
+      ESPACIOS_SERVICE_URL: http://microservicio-espacios:8083
+      KEYCLOAK_ISSUER_URI: http://localhost:${KEYCLOAK_PORT:-8180}/realms/tpi-reservas
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI: http://keycloak:8080/realms/tpi-reservas/protocol/openid-connect/certs
+    volumes:
+      - reservas-data:/app/data
+
+volumes:
+  keycloak-data:
+  usuarios-data:
+  espacios-data:
+  reservas-data:

@@ -1,0 +1,182 @@
+{
+  "info": {
+    "_postman_id": "a9bbf2f0-6b5a-4e54-9b7d-0f4d40d92a01",
+    "name": "Microservicio de Reservas - TPI",
+    "description": "Pruebas del flujo REST del microservicio de Reservas. Ejecutar primero Crear reserva válida; el ID se guarda automáticamente para las solicitudes siguientes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "reservaId",
+      "value": ""
+    },
+    {
+      "key": "fechaHoraInicio",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Crear reserva válida",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Buscar un turno en hora en punto, al menos 8 horas adelante, dentro del horario 08-21.",
+              "const now = new Date();",
+              "let candidate = null;",
+              "for (let h = 8; h <= 40; h++) {",
+              "  const d = new Date(now.getTime() + h * 60 * 60 * 1000);",
+              "  d.setMinutes(0, 0, 0);",
+              "  if (d.getHours() >= 8 && d.getHours() <= 21 && d - now >= 7 * 60 * 60 * 1000 && d - now <= 40 * 60 * 60 * 1000) { candidate = d; break; }",
+              "}",
+              "if (!candidate) throw new Error('No se encontró un horario de prueba válido.');",
+              "const pad = n => String(n).padStart(2, '0');",
+              "const localIso = `${candidate.getFullYear()}-${pad(candidate.getMonth()+1)}-${pad(candidate.getDate())}T${pad(candidate.getHours())}:00:00`;",
+              "pm.collectionVariables.set('fechaHoraInicio', localIso);",
+              "pm.collectionVariables.set('fechaReserva', localIso.substring(0, 10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('La reserva se creó (HTTP 201)', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('La reserva queda ACTIVA', () => pm.expect(body.estado).to.eql('ACTIVA'));",
+              "if (body.id) pm.collectionVariables.set('reservaId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuarioId\": 150,\n  \"nombreUsuario\": \"Docente de prueba\",\n  \"rolUsuario\": \"DOCENTE\",\n  \"espacioId\": 20,\n  \"tipoEspacio\": \"Aula general\",\n  \"cantidadEstudiantes\": 25,\n  \"fechaHoraInicio\": \"{{fechaHoraInicio}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/reservas"
+      }
+    },
+    {
+      "name": "2 - Listar reservas",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/reservas"
+      }
+    },
+    {
+      "name": "3 - Consultar reserva creada",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/reservas/{{reservaId}}"
+      }
+    },
+    {
+      "name": "5 - Cancelar reserva creada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('La reserva se canceló', () => pm.response.to.have.status(200));",
+              "pm.test('El estado es CANCELADA', () => pm.expect(pm.response.json().estado).to.eql('CANCELADA'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/reservas/{{reservaId}}/cancelacion"
+      }
+    },
+    {
+      "name": "6 - Caso negativo: aula general con menos de 5 estudiantes",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const now = new Date();",
+              "let d = null;",
+              "for (let h = 5; h <= 24; h++) { const x = new Date(now.getTime()+h*3600000); x.setMinutes(0,0,0); if (x.getHours()>=8 && x.getHours()<=21 && x-now>=3*3600000 && x-now<=24*3600000) { d=x; break; } }",
+              "if (!d) throw new Error('No se encontró fecha para la prueba negativa.');",
+              "const p=n=>String(n).padStart(2,'0');",
+              "pm.collectionVariables.set('fechaNegativa', `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:00:00`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('La regla de cupo rechaza la solicitud', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuarioId\": 151,\n  \"nombreUsuario\": \"Estudiante de prueba\",\n  \"rolUsuario\": \"ESTUDIANTE\",\n  \"espacioId\": 21,\n  \"tipoEspacio\": \"Aula general\",\n  \"cantidadEstudiantes\": 4,\n  \"fechaHoraInicio\": \"{{fechaNegativa}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/reservas"
+      }
+    },
+    {
+      "name": "Negativo - consulta sin token",
+      "request": {
+        "method": "GET",
+        "url": "{{gatewayUrl}}/api/reservas",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sin token devuelve 401/403', () => pm.expect([401,403]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}
