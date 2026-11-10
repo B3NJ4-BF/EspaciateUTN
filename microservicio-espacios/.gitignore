@@ -1,0 +1,6 @@
+
+
+# Bases H2 locales persistentes (no versionar datos locales)
+/data/
+*.mv.db
+*.trace.db

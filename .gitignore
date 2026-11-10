@@ -1,0 +1,17 @@
+# Archivos generados y preferencias locales
+target/
+.DS_Store
+.vscode/
+*.log
+/.github/modernize/
+
+# Bases H2 y respaldos locales
+*.mv.db
+*.trace.db
+
+# Configuración privada
+.env
+.env.*
+!.env.example
+/google-calendar-service-account.json
+/microservicio-reservas/google-calendar-service-account.json
