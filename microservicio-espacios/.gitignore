@@ -1,6 +1,7 @@
 
 
-# Bases H2 locales persistentes (no versionar datos locales)
-/data/
+# Datos locales. Incluir la base de la demostración.
+/data/*
 *.mv.db
+!/data/espacios-db.mv.db
 *.trace.db

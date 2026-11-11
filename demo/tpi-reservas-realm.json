@@ -1,0 +1,186 @@
+{
+  "realm": "tpi-reservas",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN"
+      },
+      {
+        "name": "ESTUDIANTE"
+      },
+      {
+        "name": "DOCENTE"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "postman-tpi",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "usuario-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "user.attribute": "usuario_id",
+            "id.token.claim": "true",
+            "lightweight.claim": "false",
+            "access.token.claim": "true",
+            "claim.name": "usuario_id",
+            "jsonType.label": "int"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin1",
+      "firstName": "Admin",
+      "lastName": "Demo",
+      "email": "admin1@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "realmRoles": [
+        "ADMIN"
+      ],
+      "attributes": {
+        "usuario_id": [
+          "1"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "EspaciateDemo2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "alumno1",
+      "firstName": "Alumno",
+      "lastName": "Demo",
+      "email": "alumno1@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "realmRoles": [
+        "ESTUDIANTE"
+      ],
+      "attributes": {
+        "usuario_id": [
+          "2"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "EspaciateDemo2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "alumno2",
+      "firstName": "Alumno",
+      "lastName": "Demo",
+      "email": "alumno2@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "realmRoles": [
+        "ESTUDIANTE"
+      ],
+      "attributes": {
+        "usuario_id": [
+          "3"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "EspaciateDemo2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "alumno3",
+      "firstName": "Alumno",
+      "lastName": "Demo",
+      "email": "alumno3@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "realmRoles": [
+        "ESTUDIANTE"
+      ],
+      "attributes": {
+        "usuario_id": [
+          "4"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "EspaciateDemo2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "docente1",
+      "firstName": "Docente",
+      "lastName": "Demo",
+      "email": "docente1@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "realmRoles": [
+        "DOCENTE"
+      ],
+      "attributes": {
+        "usuario_id": [
+          "5"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "EspaciateDemo2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "docente2",
+      "firstName": "Docente",
+      "lastName": "Demo",
+      "email": "docente2@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "realmRoles": [
+        "DOCENTE"
+      ],
+      "attributes": {
+        "usuario_id": [
+          "6"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "EspaciateDemo2026",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

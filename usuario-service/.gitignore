@@ -32,7 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 
-# Bases H2 locales persistentes (no versionar datos locales)
-/data/
+# Datos locales. Incluir la base de la demostración.
+/data/*
 *.mv.db
+!/data/usuarios-db.mv.db
 *.trace.db

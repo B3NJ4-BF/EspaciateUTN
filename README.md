@@ -50,6 +50,29 @@ mvn spring-boot:run
 
 Las solicitudes de los clientes deben dirigirse preferentemente al Gateway: `http://localhost:8080`. Los microservicios quedan disponibles localmente en los puertos indicados.
 
+## Demostración con Docker Compose
+
+Con Java 17, Maven y Docker disponibles, ejecutá desde la raíz del repositorio:
+
+```bash
+mvn -f api-gateway/pom.xml clean package
+mvn -f usuario-service/pom.xml clean package
+mvn -f microservicio-espacios/pom.xml clean package
+docker compose up --build -d
+```
+
+En una instalación nueva, Keycloak importa el realm `tpi-reservas` y Docker inicializa los volúmenes de Usuarios y Espacios con las bases H2 de sus carpetas `data/`. Las bases ya contienen seis usuarios y seis espacios. Cada cuenta tiene un `usuario_id` que coincide con el ID en Usuarios.
+
+| Cuentas | Rol | IDs |
+|---|---|---|
+| `admin1` | Administrador | 1 |
+| `alumno1`, `alumno2`, `alumno3` | Estudiante | 2, 3, 4 |
+| `docente1`, `docente2` | Docente | 5, 6 |
+
+Las seis cuentas usan la contraseña de demo `EspaciateDemo2026`. En Postman, enviá un POST a `http://localhost:8180/realms/tpi-reservas/protocol/openid-connect/token` con un cuerpo `x-www-form-urlencoded` que incluya `grant_type=password`, `client_id=postman-tpi`, `username` y `password`. Con el token de `admin1`, hacé un GET a `http://localhost:8080/api/usuarios` usando Bearer Token para ver los seis registros.
+
+Si querés ensayar una instalación nueva conservando tus datos locales, usá otro nombre de proyecto con `docker compose -p espaciate-demo up --build -d` y asegurate de que los puertos estén libres. Los volúmenes con datos existentes conservan las bases y el realm de Keycloak.
+
 ## Puertos
 
 | Componente | Puerto | Dirección |
