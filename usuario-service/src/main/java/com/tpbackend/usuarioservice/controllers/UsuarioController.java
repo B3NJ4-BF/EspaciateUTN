@@ -21,21 +21,27 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
-                                                                    
+
     @PostMapping
     public ResponseEntity<UsuarioResponseDTO> registrarUsuario(@Valid @RequestBody UsuarioRequestDTO dto) {
         UsuarioResponseDTO usuarioCreado = usuarioService.registrarUsuario(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioCreado);
     }
 
-                                                                          
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable @Positive(message = "El ID debe ser positivo") Long id) {
+        usuarioService.eliminarUsuario(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<UsuarioResponseDTO> obtenerPorId(@PathVariable @Positive(message = "El ID debe ser positivo") Long id) {
         UsuarioResponseDTO usuario = usuarioService.obtenerPorId(id);
         return ResponseEntity.ok(usuario);
     }
 
-                                                                           
+
     @GetMapping
     public ResponseEntity<List<UsuarioResponseDTO>> listarTodos() {
         List<UsuarioResponseDTO> usuarios = usuarioService.listarTodos();
