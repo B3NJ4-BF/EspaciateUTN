@@ -56,7 +56,7 @@ class ReservaServiceTest {
         for (int i = 0; i < veces; i++) {
             usuariosServer.expect(requestTo("http://usuarios-test/api/usuarios/1"))
                     .andExpect(method(org.springframework.http.HttpMethod.GET))
-                    .andRespond(withSuccess("{\"id\":1,\"rol\":\"ESTUDIANTE\"}", MediaType.APPLICATION_JSON));
+                    .andRespond(withSuccess("{\"id\":1,\"nombre\":\"Ana\",\"apellido\":\"Perez\",\"rol\":\"ESTUDIANTE\"}", MediaType.APPLICATION_JSON));
             espaciosServer.expect(requestTo("http://espacios-test/api/v1/espacios/10"))
                     .andExpect(method(org.springframework.http.HttpMethod.GET))
                     .andRespond(withSuccess("{\"id\":10,\"tipoEspacio\":\"" + tipoEspacio + "\",\"capacidadMax\":12,\"estado\":\"ACTIVO\"}", MediaType.APPLICATION_JSON));
@@ -66,8 +66,7 @@ class ReservaServiceTest {
                                                       
     @Test void rechazaReservaConMenosDeTresHoras() {
         LocalDateTime inicio = AHORA.plusHours(2);
-        var request = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 10,
-                "LABORATORIO", 5, inicio);
+        var request = new CrearReservaRequest(1, 10, 5, inicio);
         validarUsuarioYEspacioRemotos(1);
         assertThrows(ReglaNegocioException.class, () -> service.crear(request));
         verify(repository, never()).save(any());
@@ -76,8 +75,7 @@ class ReservaServiceTest {
                                                                        
     @Test void rechazaAulaGeneralConMenosDeCincoEstudiantes() {
         LocalDateTime inicio = AHORA.plusHours(5);
-        var request = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 10,
-                "AULA_COMUN", 4, inicio);
+        var request = new CrearReservaRequest(1, 10, 4, inicio);
         validarUsuarioYEspacioRemotos(1, "AULA_COMUN");
         assertThrows(ReglaNegocioException.class, () -> service.crear(request));
         verify(repository, never()).save(any());
@@ -86,8 +84,7 @@ class ReservaServiceTest {
                                                                 
     @Test void rechazaCuartaReservaActivaDelUsuario() {
         LocalDateTime inicio = AHORA.plusHours(5);
-        var request = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 10,
-                "LABORATORIO", 5, inicio);
+        var request = new CrearReservaRequest(1, 10, 5, inicio);
         when(repository.countByUsuarioIdAndEstado(1, EstadoReserva.ACTIVA)).thenReturn(3L);
         validarUsuarioYEspacioRemotos(1);
         assertThrows(ReglaNegocioException.class, () -> service.crear(request));
@@ -97,8 +94,7 @@ class ReservaServiceTest {
                                                                      
     @Test void rechazaReservaQueSeSuperponeConOtraActiva() {
         LocalDateTime inicio = AHORA.plusHours(5);
-        var request = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 10,
-                "LABORATORIO", 5, inicio);
+        var request = new CrearReservaRequest(1, 10, 5, inicio);
         when(repository.countByUsuarioIdAndEstado(1, EstadoReserva.ACTIVA)).thenReturn(0L);
         when(repository.existeSuperposicion(eq(10), eq(inicio), eq(inicio.plusHours(1)),
                 eq(EstadoReserva.ACTIVA), isNull())).thenReturn(true);
@@ -110,8 +106,7 @@ class ReservaServiceTest {
                                                                         
     @Test void rechazaEstudianteQueIntentaReservarConMasDe24Horas() {
         LocalDateTime inicio = AHORA.plusHours(33);                                                
-        var request = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 10,
-                "LABORATORIO", 5, inicio);
+        var request = new CrearReservaRequest(1, 10, 5, inicio);
         validarUsuarioYEspacioRemotos(1);
         assertThrows(ReglaNegocioException.class, () -> service.crear(request));
         verify(repository, never()).save(any());
@@ -141,10 +136,8 @@ class ReservaServiceTest {
         LocalDateTime primeraHora = AHORA.plusHours(3);                 
         LocalDateTime segundaHora = primeraHora.plusHours(1);                 
 
-        var primeraRequest = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 10,
-                "LABORATORIO", 5, primeraHora);
-        var segundaRequest = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 10,
-                "LABORATORIO", 5, segundaHora);
+        var primeraRequest = new CrearReservaRequest(1, 10, 5, primeraHora);
+        var segundaRequest = new CrearReservaRequest(1, 10, 5, segundaHora);
 
                                                                           
         when(repository.countByUsuarioIdAndEstado(1, EstadoReserva.ACTIVA)).thenReturn(0L, 1L);
@@ -165,8 +158,7 @@ class ReservaServiceTest {
 
     @Test void permiteCrearReservaValida() {
         LocalDateTime inicio = AHORA.plusHours(5);
-        var request = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 10,
-                "LABORATORIO", 5, inicio);
+        var request = new CrearReservaRequest(1, 10, 5, inicio);
         when(repository.countByUsuarioIdAndEstado(1, EstadoReserva.ACTIVA)).thenReturn(0L);
         when(repository.existeSuperposicion(eq(10), eq(inicio), eq(inicio.plusHours(1)),
                 eq(EstadoReserva.ACTIVA), isNull())).thenReturn(false);
@@ -192,7 +184,7 @@ class ReservaServiceTest {
         var request = new CrearReservaRequest(1, "Ana", "ESTUDIANTE", 999,
                 "LABORATORIO", 5, inicio);
         usuariosServer.expect(requestTo("http://usuarios-test/api/usuarios/1"))
-                .andRespond(withSuccess("{\"id\":1,\"rol\":\"ESTUDIANTE\"}", MediaType.APPLICATION_JSON));
+                .andRespond(withSuccess("{\"id\":1,\"nombre\":\"Ana\",\"apellido\":\"Perez\",\"rol\":\"ESTUDIANTE\"}", MediaType.APPLICATION_JSON));
         espaciosServer.expect(requestTo("http://espacios-test/api/v1/espacios/999"))
                 .andRespond(withStatus(HttpStatus.NOT_FOUND));
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class, () -> service.crear(request));
