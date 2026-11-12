@@ -20,7 +20,7 @@ public interface EspacioService {
 
     List<EspacioResponseDTO> listarPorTipo(TipoEspacio tipoEspacio);
 
-    EspacioResponseDTO cambiarEstado(Long id, EstadoEspacio nuevoEstado);
+    EspacioResponseDTO cambiarEstado(Long id, EstadoEspacio nuevoEstado);\n\n    void eliminarEspacio(Long id);
 
     List<EspacioResponseDTO> buscarDisponiblesPorFiltro(
             int cantidadPersonas,
