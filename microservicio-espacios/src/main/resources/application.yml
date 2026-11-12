@@ -26,3 +26,10 @@ spring:
     init:
       mode: always
 
+
+reservas:
+  service:
+    url: ${RESERVAS_SERVICE_URL:http://localhost:8081}
+internal:
+  api:
+    token: ${INTERNAL_API_TOKEN:dev-internal-token-change-me}
