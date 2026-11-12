@@ -66,7 +66,7 @@ public class SecurityConfig {
                     .pathMatchers(HttpMethod.DELETE, "/api/v1/espacios/*")
                         .hasRole("ADMIN")
                     
-                    .anyExchange().authenticated()
+                    .anyExchange().denyAll()
                 )
                                                    
                 // Configuracion de OAuth2 Resource Server con JWT 
