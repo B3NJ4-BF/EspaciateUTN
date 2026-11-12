@@ -8,19 +8,17 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 
-   
-                                                                                        
-                                                                
-   
+
 public interface ReservaRepository extends JpaRepository<Reserva, Long> {
                                                                                      
                                                                              
     long countByUsuarioIdAndEstado(Integer usuarioId, EstadoReserva estado);
 
-                                                                                 
-                                                                                      
-                                                                               
-                                                                              
+    List<Reserva> findByUsuarioIdAndEstado(Integer usuarioId, EstadoReserva estado);
+
+    List<Reserva> findByEspacioIdAndEstado(Integer espacioId, EstadoReserva estado);
+
+                                                                                                                                                              
     @Query("""
         select count(r) > 0 from Reserva r
         where r.espacioId = :espacioId
@@ -34,10 +32,7 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
                                 @Param("fin") LocalDateTime fin,
                                 @Param("estado") EstadoReserva estado,
                                 @Param("excluirId") Long excluirId);
-
-                                                                                      
-                                                                                     
-                                                    
+                                            
     @Query("""
         select r from Reserva r
         where (:usuarioId is null or r.usuarioId = :usuarioId)
