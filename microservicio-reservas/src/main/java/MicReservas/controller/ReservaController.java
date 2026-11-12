@@ -17,16 +17,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.server.ResponseStatusException;
 
-   
-                                                                             
-                                                                             
-   
 @RestController
 @Validated
 @RequestMapping("/api/reservas")
 public class ReservaController {
     private final ReservaService service;
+    @Value("${internal.api.token:dev-internal-token-change-me}")
+    private String internalToken;
 
                                                                                    
     public ReservaController(ReservaService service) { this.service = service; }
@@ -81,6 +81,30 @@ public class ReservaController {
         return ReservaResponse.desde(service.cancelar(id, usuarioId(jwt), admin));
     }
 
+    @DeleteMapping("/interno/usuarios/{usuarioId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelarPorUsuario(@PathVariable @Positive Integer usuarioId,
+                                   @RequestHeader("X-Internal-Token") String token) {
+        validarTokenInterno(token);
+        service.cancelarActivasDeUsuario(usuarioId);
+    }
+
+    @DeleteMapping("/interno/espacios/{espacioId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelarPorEspacio(@PathVariable @Positive Integer espacioId,
+                                   @RequestHeader("X-Internal-Token") String token) {
+        validarTokenInterno(token);
+        service.cancelarActivasDeEspacio(espacioId);
+    }
+
+    private void validarTokenInterno(String token) {
+        if (token == null || !java.security.MessageDigest.isEqual(
+                token.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                internalToken.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Credencial interna inválida.");
+        }
+    }
+
     private Integer usuarioId(Jwt jwt) {
         Object claim = jwt.getClaims().getOrDefault("usuario_id", jwt.getClaims().get("usuarioId"));
         if (claim instanceof Number n) return n.intValue();
@@ -89,6 +113,5 @@ public class ReservaController {
         }
         return null;
     }
-
-
+    
 }
