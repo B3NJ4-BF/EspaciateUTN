@@ -20,13 +20,11 @@ public class SecurityConfig {
 
     @Bean 
     public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http) {
-        return http
-                                                                                                     
-                                                                                                  
-                .csrf(csrf -> csrf.disable())
-                                                         
+        return http                                                                                                  
+                .csrf(csrf -> csrf.disable())                                                  
                 .authorizeExchange(auth -> auth
-                                           
+
+                    //Permisos para los roles :P
                     .pathMatchers(HttpMethod.POST, "/api/usuarios", "/api/usuarios/")
                         .hasRole("ADMIN") 
                     
@@ -36,14 +34,9 @@ public class SecurityConfig {
                     .pathMatchers(HttpMethod.GET, "/api/usuarios")
                         .hasRole("ADMIN" )
 
-                                           
                     .pathMatchers(HttpMethod.POST, "/api/reservas")
                         .hasAnyRole("ADMIN", "DOCENTE", "ESTUDIANTE")
-
-
-                                                                                                  
-                                                                                      
-                                                                                     
+                                                                                                                                                   
                     .pathMatchers(HttpMethod.GET, "/api/reservas", "/api/reservas/*")
                         .hasRole("ADMIN")
 
@@ -53,7 +46,6 @@ public class SecurityConfig {
                     .pathMatchers(HttpMethod.PATCH, "/api/reservas/*/cancelacion")
                         .hasAnyRole("ADMIN", "DOCENTE", "ESTUDIANTE")
 
-                                           
                     .pathMatchers(HttpMethod.GET,
                         "/api/v1/espacios",
                         "/api/v1/espacios/*",
@@ -76,10 +68,12 @@ public class SecurityConfig {
                     
                     .anyExchange().authenticated()
                 )
-                                                                                                                         
+                                                   
+                // Configuracion de OAuth2 Resource Server con JWT 
                 .oauth2ResourceServer(oauth2 -> oauth2
                     .jwt(jwt -> jwt
                         .jwtAuthenticationConverter(
+                            //adaptador para webflux
                             new ReactiveJwtAuthenticationConverterAdapter(jwtAuthenticationConverter()) 
                         )
                     )
@@ -87,15 +81,14 @@ public class SecurityConfig {
                 .build();
     }
 
-
-                                                              
+    //convierte los roles de Keycloak a roles de Spring Security
     @Bean
     public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
         return jwt -> {
             Map<String, List<String>> realmAccess = jwt.getClaim("realm_access");
-
             List<String> roles = realmAccess == null ? List.of() : realmAccess.getOrDefault("roles", List.of());
             List<SimpleGrantedAuthority> authorities = roles.stream()
+                    //normaliza los roles
                     .map(rol -> rol.toUpperCase(java.util.Locale.ROOT))
                     .map(rol -> "ADMINISTRADOR".equals(rol) ? "ADMIN" : rol)
                     .map(rol -> new SimpleGrantedAuthority("ROLE_" + rol))
