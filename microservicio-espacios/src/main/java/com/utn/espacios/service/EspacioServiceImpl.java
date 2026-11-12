@@ -11,6 +11,11 @@ import com.utn.espacios.repository.EspacioRepository;
 import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -18,9 +23,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class EspacioServiceImpl implements EspacioService {
 
     private final EspacioRepository espacioRepository;
+    private final RestClient reservasClient;
+    private final String internalToken;
 
-    public EspacioServiceImpl(EspacioRepository espacioRepository) {
+    public EspacioServiceImpl(EspacioRepository espacioRepository,
+                              @Value("${reservas.service.url:http://localhost:8081}") String reservasUrl,
+                              @Value("${internal.api.token:dev-internal-token-change-me}") String internalToken) {
         this.espacioRepository = espacioRepository;
+        this.reservasClient = RestClient.builder().baseUrl(reservasUrl).build();
+        this.internalToken = internalToken;
     }
 
     @Override
@@ -104,6 +115,19 @@ public class EspacioServiceImpl implements EspacioService {
                 .toList();
     }
 
+    @Override
+    public void eliminarEspacio(Long id) {
+        Espacio espacio = buscarEntidadPorId(id);
+        try {
+            reservasClient.delete().uri("/api/reservas/interno/espacios/{id}", id)
+                    .header("X-Internal-Token", internalToken).retrieve().toBodilessEntity();
+        } catch (RestClientException ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudieron cancelar las reservas del espacio. No se eliminó el espacio.", ex);
+        }
+        espacioRepository.delete(espacio);
+    }
+
     private Espacio buscarEntidadPorId(Long id) {
         if (id == null || id <= 0) {
             throw new BadRequestException("El id debe ser un número positivo.");
@@ -127,3 +151,4 @@ public class EspacioServiceImpl implements EspacioService {
         return EspacioResponseDTO.desdeEntidad(espacio);
     }
 }
+
