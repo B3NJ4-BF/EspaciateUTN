@@ -6,6 +6,9 @@ import com.tpbackend.usuarioservice.models.Usuario;
 import com.tpbackend.usuarioservice.repositories.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,10 +18,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final RestClient reservasClient;
+    private final String internalToken;
+
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                          @Value("${reservas.service.url:http://localhost:8081}") String reservasUrl,
+                          @Value("${internal.api.token:dev-internal-token-change-me}") String internalToken) {
+        this.usuarioRepository = usuarioRepository;
+        this.reservasClient = RestClient.builder().baseUrl(reservasUrl).build();
+        this.internalToken = internalToken;
+    }
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
                                                                   
@@ -63,6 +75,20 @@ public class UsuarioService {
     }
 
                                                                            
+    public void eliminarUsuario(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Usuario no encontrado con ID: " + id));
+        try {
+            reservasClient.delete().uri("/api/reservas/interno/usuarios/{id}", id)
+                    .header("X-Internal-Token", internalToken).retrieve().toBodilessEntity();
+        } catch (org.springframework.web.client.RestClientException ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudieron cancelar las reservas del usuario. No se eliminó el usuario.", ex);
+        }
+        usuarioRepository.delete(usuario);
+    }
+
     private UsuarioResponseDTO mapearAResponseDTO(Usuario usuario) {
         return UsuarioResponseDTO.builder()
                 .id(usuario.getId())
