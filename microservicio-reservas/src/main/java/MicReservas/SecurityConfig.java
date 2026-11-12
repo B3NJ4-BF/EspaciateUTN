@@ -21,6 +21,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(HttpMethod.DELETE, "/api/reservas/interno/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/reservas").hasAnyRole("ADMIN", "DOCENTE", "ESTUDIANTE")
                     .requestMatchers(HttpMethod.PUT, "/api/reservas/*").hasAnyRole("ADMIN", "DOCENTE", "ESTUDIANTE")
                     .requestMatchers(HttpMethod.PATCH, "/api/reservas/*/cancelacion").hasAnyRole("ADMIN", "DOCENTE", "ESTUDIANTE")
@@ -43,3 +44,4 @@ public class SecurityConfig {
         };
     }
 }
+
