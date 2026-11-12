@@ -98,7 +98,7 @@ public class EspacioController {
        
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarLogicamente(@PathVariable @Positive(message = "El ID debe ser positivo") Long id) {
-        espacioService.cambiarEstado(id, EstadoEspacio.INHABILITADO);
+        espacioService.eliminarEspacio(id);
         return ResponseEntity.noContent().build();
     }
 }
