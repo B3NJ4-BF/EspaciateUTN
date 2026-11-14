@@ -9,6 +9,7 @@ services:
     volumes:
       - keycloak-data:/opt/keycloak/data
       - ./demo/tpi-reservas-realm.json:/opt/keycloak/data/import/tpi-reservas-realm.json:ro
+    restart: unless-stopped
 
   api-gateway:
     build: ./api-gateway
@@ -20,27 +21,55 @@ services:
       RESERVAS_URL: http://microservicio-reservas:8081
       KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/tpi-reservas
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI: http://keycloak:8080/realms/tpi-reservas/protocol/openid-connect/certs
+    depends_on:
+      - keycloak
+      - usuario-service
+      - microservicio-espacios
+      - microservicio-reservas
+    restart: unless-stopped
 
   usuario-service:
     build: ./usuario-service
+    environment:
+      SERVER_PORT: 8082
+      RESERVAS_SERVICE_URL: http://microservicio-reservas:8081
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-cambiar-este-token-interno}
     volumes:
       - usuarios-data:/app/data
+    restart: unless-stopped
 
   microservicio-espacios:
     build: ./microservicio-espacios
+    environment:
+      SERVER_PORT: 8083
+      RESERVAS_SERVICE_URL: http://microservicio-reservas:8081
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-cambiar-este-token-interno}
     volumes:
       - espacios-data:/app/data
+    restart: unless-stopped
 
   microservicio-reservas:
     build: ./microservicio-reservas
     environment:
+      SERVER_PORT: 8081
       JAVA_TOOL_OPTIONS: "-Duser.timezone=America/Argentina/Buenos_Aires"
       USUARIOS_SERVICE_URL: http://usuario-service:8082
       ESPACIOS_SERVICE_URL: http://microservicio-espacios:8083
       KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/tpi-reservas
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI: http://keycloak:8080/realms/tpi-reservas/protocol/openid-connect/certs
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-cambiar-este-token-interno}
+      GOOGLE_CALENDAR_ENABLED: ${GOOGLE_CALENDAR_ENABLED:-false}
+      GOOGLE_CALENDAR_CREDENTIALS_FILE: /run/secrets/google-calendar.json
+      GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-primary}
+      GOOGLE_CALENDAR_TIME_ZONE: ${GOOGLE_CALENDAR_TIME_ZONE:-America/Argentina/Buenos_Aires}
     volumes:
       - reservas-data:/app/data
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      - keycloak
+      - usuario-service
+      - microservicio-espacios
+    restart: unless-stopped
 
 volumes:
   keycloak-data:

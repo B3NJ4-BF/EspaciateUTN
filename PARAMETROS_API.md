@@ -65,3 +65,10 @@ Ya no se envían `nombreUsuario`, `rolUsuario` ni `tipoEspacio`: se consultan en
 - Validar que `cantidadEstudiantes` no supere la capacidad del espacio; además `BOX_ESTUDIO` admite hasta 4 y aulas/laboratorios requieren al menos 5.
 - La eliminación de usuarios y espacios cancela primero las reservas activas relacionadas. Si el microservicio de reservas no responde, la eliminación se rechaza para no dejar reservas huérfanas.
 - Configurar `INTERNAL_API_TOKEN` con un secreto largo y aleatorio en cualquier entorno compartido/producción. El valor por defecto solo sirve para desarrollo local.
+
+## Eliminación coordinada
+
+- `DELETE /api/usuarios/{id}`: solo ADMIN. Cancela las reservas activas del usuario mediante la API interna y luego elimina el usuario. Si Reservas no está disponible o rechaza la solicitud, no se elimina el usuario.
+- `DELETE /api/v1/espacios/{id}`: solo ADMIN. Cancela las reservas activas del espacio y luego elimina el espacio. Si Reservas no está disponible, no se elimina el espacio.
+- Las operaciones internas `DELETE /api/reservas/interno/usuarios/{usuarioId}` y `DELETE /api/reservas/interno/espacios/{espacioId}` requieren el encabezado `X-Internal-Token`; no son endpoints para clientes finales.
+- La cancelación masiva conserva los registros históricos y cambia únicamente reservas `ACTIVA` a `CANCELADA`.

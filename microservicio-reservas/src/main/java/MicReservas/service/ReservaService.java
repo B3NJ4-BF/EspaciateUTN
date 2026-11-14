@@ -110,8 +110,13 @@ public class ReservaService {
                     request.espacioId(), request.tipoEspacio().trim(), request.cantidadEstudiantes(), inicio, fin);
             Reserva guardada = repository.save(reserva);
             if (googleCalendarService != null) {
-                guardada.setGoogleCalendarEventId(googleCalendarService.crearEvento(guardada));
-                guardada = repository.save(guardada);
+                try {
+                    guardada.setGoogleCalendarEventId(googleCalendarService.crearEvento(guardada));
+                    guardada = repository.save(guardada);
+                } catch (RuntimeException ex) {
+                    org.slf4j.LoggerFactory.getLogger(ReservaService.class)
+                            .error("Reserva {} creada localmente, pero falló Google Calendar", guardada.getId(), ex);
+                }
             }
             return guardada;
         } finally {
@@ -168,7 +173,13 @@ public class ReservaService {
         validarDisponibilidad(reserva.getEspacioId(), inicio, fin, reserva.getId());
         reserva.modificar(request.tipoEspacio().trim(), request.cantidadEstudiantes(), inicio, fin);
         Reserva guardada = repository.save(reserva);
-        if (googleCalendarService != null) googleCalendarService.actualizarEvento(guardada);
+        if (googleCalendarService != null) {
+            try { googleCalendarService.actualizarEvento(guardada); }
+            catch (RuntimeException ex) {
+                org.slf4j.LoggerFactory.getLogger(ReservaService.class)
+                        .error("Reserva {} modificada localmente, pero falló Google Calendar", guardada.getId(), ex);
+            }
+        }
         return guardada;
     }
 
@@ -189,7 +200,13 @@ public class ReservaService {
         }
         reserva.cancelar();
         Reserva guardada = repository.save(reserva);
-        if (googleCalendarService != null) googleCalendarService.cancelarEvento(guardada);
+        if (googleCalendarService != null) {
+            try { googleCalendarService.cancelarEvento(guardada); }
+            catch (RuntimeException ex) {
+                org.slf4j.LoggerFactory.getLogger(ReservaService.class)
+                        .error("Reserva {} cancelada localmente, pero falló Google Calendar", guardada.getId(), ex);
+            }
+        }
         return guardada;
     }
 
@@ -306,6 +323,52 @@ public class ReservaService {
                                                                                    
                                                                                     
        
+    /**
+     * Cancela todas las reservas activas de un usuario. Se usa durante la eliminación
+     * coordinada de usuarios; las reservas históricas se conservan.
+     */
+    @Transactional
+    public void cancelarActivasDeUsuario(Integer usuarioId) {
+        if (usuarioId == null || usuarioId <= 0) {
+            throw new ReglaNegocioException("El usuarioId debe ser positivo.", HttpStatus.BAD_REQUEST);
+        }
+        List<Reserva> activas = repository.findByUsuarioIdAndEstado(usuarioId, EstadoReserva.ACTIVA);
+        for (Reserva reserva : activas) {
+            reserva.cancelar();
+            repository.save(reserva);
+            sincronizarCancelacionCalendar(reserva);
+        }
+    }
+
+    /**
+     * Cancela todas las reservas activas de un espacio antes de eliminarlo.
+     */
+    @Transactional
+    public void cancelarActivasDeEspacio(Integer espacioId) {
+        if (espacioId == null || espacioId <= 0) {
+            throw new ReglaNegocioException("El espacioId debe ser positivo.", HttpStatus.BAD_REQUEST);
+        }
+        List<Reserva> activas = repository.findByEspacioIdAndEstado(espacioId, EstadoReserva.ACTIVA);
+        for (Reserva reserva : activas) {
+            reserva.cancelar();
+            repository.save(reserva);
+            sincronizarCancelacionCalendar(reserva);
+        }
+    }
+
+    private void sincronizarCancelacionCalendar(Reserva reserva) {
+        if (googleCalendarService == null) return;
+        try {
+            googleCalendarService.cancelarEvento(reserva);
+        } catch (RuntimeException ex) {
+            // La cancelación local no debe quedar bloqueada por una caída de Google.
+            // El identificador se conserva para permitir reconciliarlo posteriormente.
+            org.slf4j.LoggerFactory.getLogger(ReservaService.class)
+                    .error("No se pudo sincronizar la cancelación de la reserva {} con Google Calendar",
+                            reserva.getId(), ex);
+        }
+    }
+
     private void validarTitularidad(Reserva reserva, Integer usuarioAutenticadoId, boolean administrador) {
         if (administrador) return;
         if (usuarioAutenticadoId == null || !usuarioAutenticadoId.equals(reserva.getUsuarioId())) {

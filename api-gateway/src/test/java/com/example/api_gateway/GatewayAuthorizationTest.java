@@ -121,4 +121,21 @@ class GatewayAuthorizationTest {
             });
     }
 
+
+    @Test void estudianteNoPuedeEliminarUsuarios() {
+        client.mutateWith(mockJwt().authorities(
+                List.of(new SimpleGrantedAuthority("ROLE_ESTUDIANTE"))))
+            .delete().uri("/api/usuarios/1")
+            .exchange().expectStatus().isForbidden();
+    }
+
+    @Test void administradorPuedeIntentarEliminarUsuarios() {
+        client.mutateWith(mockJwt().authorities(
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+            .delete().uri("/api/usuarios/1")
+            .exchange().expectStatus().value(code -> {
+                org.junit.jupiter.api.Assertions.assertNotEquals(401, code);
+                org.junit.jupiter.api.Assertions.assertNotEquals(403, code);
+            });
+    }
 }

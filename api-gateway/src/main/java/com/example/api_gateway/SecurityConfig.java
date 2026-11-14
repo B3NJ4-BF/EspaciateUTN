@@ -32,7 +32,11 @@ public class SecurityConfig {
                         .hasRole("ADMIN")
 
                     .pathMatchers(HttpMethod.GET, "/api/usuarios")
-                        .hasRole("ADMIN" )
+                        .hasRole("ADMIN")
+
+                    // La eliminación de usuarios dispara la cancelación coordinada de reservas.
+                    .pathMatchers(HttpMethod.DELETE, "/api/usuarios/*")
+                        .hasRole("ADMIN")
 
                     .pathMatchers(HttpMethod.POST, "/api/reservas")
                         .hasAnyRole("ADMIN", "DOCENTE", "ESTUDIANTE")

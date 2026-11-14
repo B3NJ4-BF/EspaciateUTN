@@ -192,4 +192,40 @@ class ReservaServiceTest {
         verify(repository, never()).save(any());
     }
 
+
+    @Test void cancelaTodasLasReservasActivasDeUnUsuarioYConservaLasHistoricas() {
+        LocalDateTime inicio = AHORA.plusDays(1);
+        Reserva activa1 = new Reserva(1, "Ana", "ESTUDIANTE", 10, "LABORATORIO", 5,
+                inicio, inicio.plusHours(1));
+        Reserva activa2 = new Reserva(1, "Ana", "ESTUDIANTE", 11, "LABORATORIO", 5,
+                inicio.plusHours(2), inicio.plusHours(3));
+        when(repository.findByUsuarioIdAndEstado(1, EstadoReserva.ACTIVA))
+                .thenReturn(java.util.List.of(activa1, activa2));
+
+        service.cancelarActivasDeUsuario(1);
+
+        assertEquals(EstadoReserva.CANCELADA, activa1.getEstado());
+        assertEquals(EstadoReserva.CANCELADA, activa2.getEstado());
+        verify(repository, times(2)).save(any(Reserva.class));
+    }
+
+    @Test void cancelaTodasLasReservasActivasDeUnEspacio() {
+        LocalDateTime inicio = AHORA.plusDays(1);
+        Reserva activa = new Reserva(1, "Ana", "ESTUDIANTE", 10, "LABORATORIO", 5,
+                inicio, inicio.plusHours(1));
+        when(repository.findByEspacioIdAndEstado(10, EstadoReserva.ACTIVA))
+                .thenReturn(java.util.List.of(activa));
+
+        service.cancelarActivasDeEspacio(10);
+
+        assertEquals(EstadoReserva.CANCELADA, activa.getEstado());
+        verify(repository).save(activa);
+    }
+
+    @Test void rechazaCancelacionMasivaConIdentificadorNoPositivo() {
+        assertThrows(ReglaNegocioException.class, () -> service.cancelarActivasDeUsuario(0));
+        assertThrows(ReglaNegocioException.class, () -> service.cancelarActivasDeEspacio(-1));
+        verify(repository, never()).findByUsuarioIdAndEstado(anyInt(), any());
+        verify(repository, never()).findByEspacioIdAndEstado(anyInt(), any());
+    }
 }

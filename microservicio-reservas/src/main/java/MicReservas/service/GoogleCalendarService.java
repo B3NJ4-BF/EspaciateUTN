@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.Callable;
 
                                                                               
 @Service
@@ -40,7 +41,8 @@ public class GoogleCalendarService {
     public String crearEvento(Reserva reserva) {
         if (!enabled) return null;
         try {
-            Event created = getCalendar().events().insert(calendarId, toEvent(reserva)).execute();
+            Event created = ejecutarConReintentos(() ->
+                    getCalendar().events().insert(calendarId, toEvent(reserva)).execute());
             return created.getId();
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo crear el evento en Google Calendar: " + e.getMessage(), e);
@@ -50,7 +52,8 @@ public class GoogleCalendarService {
     public void actualizarEvento(Reserva reserva) {
         if (!enabled || reserva.getGoogleCalendarEventId() == null) return;
         try {
-            getCalendar().events().update(calendarId, reserva.getGoogleCalendarEventId(), toEvent(reserva)).execute();
+            ejecutarConReintentos(() -> getCalendar().events()
+                    .update(calendarId, reserva.getGoogleCalendarEventId(), toEvent(reserva)).execute());
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo actualizar el evento de Google Calendar: " + e.getMessage(), e);
         }
@@ -59,11 +62,36 @@ public class GoogleCalendarService {
     public void cancelarEvento(Reserva reserva) {
         if (!enabled || reserva.getGoogleCalendarEventId() == null) return;
         try {
-            getCalendar().events().delete(calendarId, reserva.getGoogleCalendarEventId()).execute();
+            ejecutarConReintentos(() -> getCalendar().events()
+                    .delete(calendarId, reserva.getGoogleCalendarEventId()).execute());
             reserva.setGoogleCalendarEventId(null);
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo cancelar el evento de Google Calendar: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Reintenta fallos transitorios de red/servicio antes de informar el error.
+     * El estado de la reserva en la base local no depende de la disponibilidad de Google.
+     */
+    private <T> T ejecutarConReintentos(Callable<T> operacion) throws Exception {
+        Exception ultimoError = null;
+        for (int intento = 1; intento <= 3; intento++) {
+            try {
+                return operacion.call();
+            } catch (Exception ex) {
+                ultimoError = ex;
+                if (intento < 3) {
+                    try {
+                        Thread.sleep(300L * intento);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw interrupted;
+                    }
+                }
+            }
+        }
+        throw ultimoError;
     }
 
     private Calendar getCalendar() throws Exception {

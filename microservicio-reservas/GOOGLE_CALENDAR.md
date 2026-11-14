@@ -37,5 +37,18 @@ En desarrollo local, dejar `GOOGLE_CALENDAR_ENABLED=false` (valor predeterminado
 
 - No guardar el JSON de credenciales en el ZIP, en el repositorio ni en `src/main/resources`.
 - La cuenta de servicio no representa al usuario final; crea eventos en el calendario compartido.
-- La integración usa llamadas síncronas a Google Calendar. Si Calendar está habilitado y la API falla, la operación de reserva falla para evitar una reserva sin evento sincronizado. Para producción sería recomendable usar patrón Outbox/reintentos.
+- Las operaciones remotas se reintentan hasta tres veces ante errores. Si Google continúa sin responder, la operación local de reserva/cambio/cancelación se conserva y el error queda registrado en los logs; por eso puede existir una diferencia temporal entre la base local y el calendario.
+- Para operaciones de creación que no consiguieron crear el evento, no se dispone todavía de una cola Outbox ni de una tarea automática de reconciliación. Para producción se recomienda incorporar Outbox con estado de sincronización y reintentos persistentes.
+- Si falla la eliminación de un evento ya asociado, se conserva su identificador en la reserva para facilitar una reconciliación posterior.
 - Para configurar OAuth de usuario final (cada usuario autoriza su propio calendario) se requiere un flujo OAuth con pantalla de consentimiento y almacenamiento/renovación de tokens; no es el enfoque elegido para este TP.
+
+## Docker Compose
+
+Desde la raíz del proyecto:
+
+1. Crear `.env` copiando `.env.example` y reemplazar `INTERNAL_API_TOKEN` por un secreto aleatorio largo.
+2. Para activar Calendar, colocar el JSON de la cuenta de servicio en `secrets/google-calendar.json` (la carpeta está ignorada por Git).
+3. En `.env`, establecer `GOOGLE_CALENDAR_ENABLED=true` y completar `GOOGLE_CALENDAR_ID`.
+4. Ejecutar `docker compose up --build -d`.
+
+Compose monta `secrets/` como solo lectura en Reservas y configura `GOOGLE_CALENDAR_CREDENTIALS_FILE=/run/secrets/google-calendar.json`. Si Calendar está deshabilitado, no hace falta crear el archivo de credenciales.

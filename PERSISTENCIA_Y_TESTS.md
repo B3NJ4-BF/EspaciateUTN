@@ -74,6 +74,8 @@ Usar el token correspondiente al rol requerido en Gateway. Los códigos indicado
 | DOCENTE consulta reserva por ID | `GET /api/reservas/1` | 403 |
 | ADMIN consulta reservas | `GET /api/reservas` | Pasa autorización (requiere servicio activo) |
 | JWT con rol `ADMINISTRADOR` | Operación ADMIN | Se interpreta como `ROLE_ADMIN` |
+| ESTUDIANTE elimina usuario | `DELETE /api/usuarios/1` | 403 |
+| ADMIN elimina usuario | `DELETE /api/usuarios/1` | Pasa autorización; requiere servicios activos |
 | JWT sin `realm_access.roles` | Ruta protegida | Sin permisos de rol |
 
 ### Usuarios (directo 8082 o Gateway 8080)
@@ -91,6 +93,8 @@ Usar el token correspondiente al rol requerido en Gateway. Los códigos indicado
 | Rol ausente | Omitir `rol` | 400 |
 | ID con letras | `GET /api/usuarios/abc` | 400 |
 | Usuario inexistente | `GET /api/usuarios/999999` | 404 |
+| Eliminar usuario con reservas activas | `DELETE /api/usuarios/{id}` | Reservas activas canceladas y usuario eliminado |
+| Reservas no disponible al eliminar usuario | `DELETE /api/usuarios/{id}` | 503; usuario no eliminado |
 
 ### Espacios (directo 8083 o Gateway 8080)
 
@@ -108,6 +112,8 @@ Usar el token correspondiente al rol requerido en Gateway. Los códigos indicado
 | Cantidad de búsqueda con letras | `GET /buscar?cantidadPersonas=abc` | 400 |
 | ID con letras | `GET /api/v1/espacios/abc` | 400 |
 | Espacio inexistente | `GET /api/v1/espacios/999999` | 404 |
+| Eliminar espacio con reservas activas | `DELETE /api/v1/espacios/{id}` | Reservas activas canceladas y espacio eliminado |
+| Reservas no disponible al eliminar espacio | `DELETE /api/v1/espacios/{id}` | 503; espacio no eliminado |
 | Estado inventado | `PATCH /{id}/estado` con `{"estado":"DISPONIBLE"}` | 400 |
 
 ### Reservas (directo 8081 o Gateway 8080)
@@ -146,3 +152,9 @@ Usar el token correspondiente al rol requerido en Gateway. Los códigos indicado
 - Probar Gateway integrado con Keycloak real y los cuatro servicios levantados.
 - Evaluar concurrencia en reservas simultáneas para impedir doble asignación bajo carga.
 - Mantener contraseñas, claves y secretos fuera del repositorio.
+
+## 6. Resultado de implementación y límites de verificación
+
+Se incorporaron pruebas unitarias de cancelación masiva por usuario/espacio y pruebas de autorización DELETE de usuarios en Gateway. Google Calendar realiza hasta tres intentos por operación; si persiste un error, se conserva la operación local y se registra el problema. Todavía no existe una cola Outbox ni reconciliación automática para eventos que no llegaron a crearse.
+
+La ejecución completa de Maven y el levantamiento de Docker Compose deben verificarse en un entorno con acceso al repositorio Maven y Docker. En el entorno de edición no se pudo descargar Maven desde Maven Central, por lo que los tests no se reportan como ejecutados exitosamente.

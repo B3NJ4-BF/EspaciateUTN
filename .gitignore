@@ -15,3 +15,7 @@ target/
 !.env.example
 /google-calendar-service-account.json
 /microservicio-reservas/google-calendar-service-account.json
+
+# Credenciales privadas de Google Calendar
+.env
+secrets/

@@ -55,9 +55,14 @@ Las solicitudes de los clientes deben dirigirse preferentemente al Gateway: `htt
 Con Java 17, Maven y Docker disponibles, ejecutá desde la raíz del repositorio:
 
 ```bash
+# Crear configuración local de secretos
+cp .env.example .env
+# Editar .env y reemplazar INTERNAL_API_TOKEN por un secreto largo
+
 mvn -f api-gateway/pom.xml clean package
 mvn -f usuario-service/pom.xml clean package
 mvn -f microservicio-espacios/pom.xml clean package
+mvn -f microservicio-reservas/pom.xml clean package
 docker compose up --build -d
 ```
 
@@ -95,6 +100,10 @@ mvn test
 
 Los servicios permiten ajustar puertos y conexiones mediante variables de entorno. Entre las principales se encuentran `SERVER_PORT`, `DB_URL`, `DB_USER`, `DB_PASSWORD`, `DDL_AUTO` y `KEYCLOAK_ISSUER_URI`. El valor predeterminado del emisor JWT es `http://localhost:8180/realms/tpi-reservas`.
 
-La integración con Google Calendar está deshabilitada por defecto. Para habilitarla se deben configurar `GOOGLE_CALENDAR_ENABLED`, `GOOGLE_CALENDAR_CREDENTIALS_FILE` y `GOOGLE_CALENDAR_ID`.
+La integración con Google Calendar está deshabilitada por defecto. Para habilitarla con Docker Compose, colocar la credencial en `secrets/google-calendar.json`, establecer `GOOGLE_CALENDAR_ENABLED=true` y configurar `GOOGLE_CALENDAR_ID` en `.env`. En ejecución local se configura `GOOGLE_CALENDAR_CREDENTIALS_FILE` con la ruta del JSON. Las llamadas remotas reintentan hasta tres veces; si persiste el error, se conserva la operación local y se registra el fallo para reconciliación posterior.
 
 Las bases H2 se configuran por servicio y se crean al iniciar cada aplicación según su configuración. No se requiere compartir una base de datos entre microservicios.
+
+## Seguridad de eliminación coordinada
+
+La eliminación de usuarios y espacios está reservada a ADMIN en el Gateway. Antes de borrar el registro, cada servicio solicita a Reservas cancelar las reservas activas relacionadas mediante endpoints internos protegidos por `X-Internal-Token`. Definir el mismo `INTERNAL_API_TOKEN` en `.env` para los tres servicios; no usar el valor de ejemplo en entornos compartidos.
